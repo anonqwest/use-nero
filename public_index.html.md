@@ -1,0 +1,55 @@
+---
+created: 2025-06-30T03:10:45+06:00
+modified: 2025-06-30T03:10:57+06:00
+---
+
+# public/index.html
+
+const express = require('express');
+const fetch = require('node-fetch');
+const cors = require('cors');
+const path = require('path');
+require('dotenv').config();
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.use(cors());
+app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
+
+app.post('/chat', async (req, res) => {
+  const userMessage = req.body.message;
+  try {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: "gpt-3.5-turbo",
+        messages: [
+          {
+            role: "system",
+            content: "Ты добрая, дружелюбная обучающая нейросеть. Объясняй всё спокойно, шаг за шагом, как учителю Юрию."
+          },
+          {
+            role: "user",
+            content: userMessage
+          }
+        ]
+      })
+    });
+
+    const data = await response.json();
+    res.json({ reply: data.choices[0].message.content });
+  } catch (error) {
+    console.error("Ошибка при обращении к OpenAI:", error);
+    res.status(500).json({ reply: "Произошла ошибка. Попробуй позже." });
+  }
+});
+
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🟢 Сервер запущен на порту ${PORT}`);
+});
